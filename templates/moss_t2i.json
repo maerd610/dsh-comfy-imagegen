@@ -1,0 +1,163 @@
+{
+  "id": "moss_t2i",
+  "label": "MOSS 版式",
+  "strengths": [
+    "版式",
+    "中文文字",
+    "构图"
+  ],
+  "purposes": [
+    "layout"
+  ],
+  "dialect": "layout-json",
+  "notes": "支持自然语言/标签序列/JSON layout（bbox 控位置），1120x1552 竖幅，中文文字分组整齐。",
+  "size": {
+    "native": "1120x1552"
+  },
+  "slots": {
+    "sampler": {
+      "node": "9"
+    },
+    "seed": {
+      "node": "9",
+      "input": "seed"
+    },
+    "steps": {
+      "node": "9",
+      "input": "steps"
+    },
+    "cfg": {
+      "node": "9",
+      "input": "cfg"
+    },
+    "denoise": {
+      "node": "9",
+      "input": "denoise"
+    },
+    "prompt": {
+      "node": "7",
+      "input": "text"
+    },
+    "negative": {
+      "node": "8",
+      "input": "text"
+    },
+    "width": {
+      "node": "6",
+      "input": "width"
+    },
+    "height": {
+      "node": "6",
+      "input": "height"
+    },
+    "batch": {
+      "node": "6",
+      "input": "batch_size"
+    },
+    "save": {
+      "node": "11",
+      "input": "filename_prefix"
+    }
+  },
+  "graph": {
+    "1": {
+      "class_type": "UNETLoader",
+      "inputs": {
+        "unet_name": "moss_image_base_int8_convrot.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    "2": {
+      "class_type": "CLIPLoader",
+      "inputs": {
+        "clip_name": "qwen3.5_9b_w4a8_gptq.safetensors",
+        "type": "moss_image",
+        "device": "default"
+      }
+    },
+    "3": {
+      "class_type": "VAELoader",
+      "inputs": {
+        "vae_name": "flux2-vae.safetensors"
+      }
+    },
+    "6": {
+      "class_type": "EmptyFlux2LatentImage",
+      "inputs": {
+        "width": 1120,
+        "height": 1552,
+        "batch_size": 1
+      }
+    },
+    "7": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "clip": [
+          "2",
+          0
+        ],
+        "text": "绘制一张剧情插图，保持参考图中角色的肤色与发型不变，参考图中的角色穿着图中的背心，短裤和袜子，双手背在身后，侧着躺着装在一个能刚好容下一个人的，被抽空空气的塑料真空袋中，真空袋紧紧贴着角色外表，像一层透明紧身衣一样包裹着角色（包括头部），呈现出塑料光泽与质感。角色戴着红色口球，表情挣扎泛红，眼神涣散，大腿外侧用黑色系带绑着一个五号电池盒大小的黑色盒子，有且只有一根黑色细电线从裤腰位置引入角色的短裤中。请注意黑色盒子，系带和电线都在真空袋里，应仔细刻画这些物品和角色一起被包在真空袋里的细节（表面有包裹的塑料质感，电线紧贴人物不留空隙）。裤子裆部位置有水迹。整个真空袋被摆在浅灰色的地毯上，为视觉中心，周围摆着皮鞭，皮质铐具，项圈与若干类似用具与参考图中的其他衣服与配饰。\n整个画面呈现特定背景下的高质量二次元插画风格，角色的姿态、表情处理得当，保持优雅、美感和动漫风特有的细腻表达。"
+      }
+    },
+    "8": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "clip": [
+          "2",
+          0
+        ],
+        "text": "bad hands, extra fingers, extra limbs, extra toes, asymmetric eyes,signature, jpeg artifacts, oversaturated, flat lighting, extra people, duplicate character, cropped figure"
+      }
+    },
+    "9": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": [
+          "1",
+          0
+        ],
+        "positive": [
+          "7",
+          0
+        ],
+        "negative": [
+          "8",
+          0
+        ],
+        "latent_image": [
+          "6",
+          0
+        ],
+        "seed": 249240664678523,
+        "steps": 25,
+        "cfg": 4.5,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1
+      }
+    },
+    "10": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "9",
+          0
+        ],
+        "vae": [
+          "3",
+          0
+        ]
+      }
+    },
+    "11": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "10",
+          0
+        ],
+        "filename_prefix": "ComfyUI"
+      }
+    }
+  }
+}

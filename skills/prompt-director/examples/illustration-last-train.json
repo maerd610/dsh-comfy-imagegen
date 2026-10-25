@@ -1,0 +1,15 @@
+{
+  "id": "illustration-last-train",
+  "input": {
+    "idea": "末班地铁，一个人坐在车厢尽头，插画",
+    "category": "illustration",
+    "reference": [],
+    "requirements": "安静一点，不要很亮",
+    "copy": []
+  },
+  "expected": {
+    "wh_ratio": "3:2",
+    "kept_from_ref": [],
+    "description": "An illustration in muted watercolour and coloured pencil, with soft edges where the washes bleed past the drawing. A man in his forties sits alone at the far end of a subway car, the last one before the doors close, his legs crossed at the ankle, one hand flat on his knee and the other holding a folded newspaper against the window. He wears a charcoal overcoat over a pale blue shirt, the top button undone and the collar slightly bent to one side, and a canvas bag lies slack between his feet. The row of seats on the left runs away from the viewer in shallow perspective, its orange upholstery fading toward the back of the car into several unoccupied pairs of seats. Overhead, a strip of fluorescent light is broken into uneven panels, one of them darker than the rest, and its cool white falls along the ceiling and the top edge of the window rather than into the cabin. Outside, the tunnel wall passes as a low band of grey-brown with faint vertical cables; a single intermittent light from the wall meets the glass and trails backward into the darkness. The floor is a worn grey with a dust path down the centre and a soft reflection of the window beneath the man's coat. On the right, the door column is dull steel with a dark rubber seam, scuffed near the handle. The only warm colour in the frame is the upholstery and a thin gold line of light along the newspaper's edge. The picture holds to a narrow range of grey and dim orange, with the man's stillness carried by distance and emptiness rather than by any gesture."
+  }
+}

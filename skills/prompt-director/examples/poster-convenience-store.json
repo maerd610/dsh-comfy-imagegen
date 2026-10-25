@@ -1,0 +1,16 @@
+{
+  "id": "poster-convenience-store",
+  "input": {
+    "idea": "参考这个人，做一张便利店深夜营业的海报",
+    "category": "poster",
+    "reference": ["a photo of a young woman with a blunt bob, narrow face, one eyebrow higher than the other"],
+    "requirements": "文字：深夜营业",
+    "copy": ["深夜营业"]
+  },
+  "expected": {
+    "wh_ratio": "3:4",
+    "kept_from_ref": ["face", "hair"],
+    "labels": ["picture 1"],
+    "description": "A vertical poster illustration, painted in matte gouache on slightly textured paper. The woman from picture 1, in her late twenties, stands just before the sliding glass door of a convenience store at night, her body angled three-quarters toward it, one hand raised level with the handle without closing on it. Her hair is black, cut in a blunt line at the jaw and wet enough to cling in a few strands to her cheek. Her face is narrow with a wide mouth, one eyebrow sitting a little higher than the other, and a small mole under the left eye. A thin grey trench coat is dark across the shoulders where rain has gone through; the collar stands up on her left side only. A pale canvas bag hangs from that shoulder, its strap cutting a diagonal across the coat. Behind her, the store interior compresses into a band of warm yellow seen through glass beaded with rain. Shelves read as soft horizontal stripes of green and red, without products; the door frame draws a single vertical white line from the bottom edge to the upper third, and a second, thinner line of reflected light leans against it at a slight angle. The upper third of the poster is a flat field of wet asphalt grey, empty, with one smeared vertical of reflected light entering from the right margin. Beneath her the pavement is a black mirror broken by drips, holding two strained reflections: a cold white streak beneath the door frame and an amber smear beneath her shoes. Across the top, in a heavy condensed sans-serif, off-white letters spaced slightly wide and printed with a faint ink spread at the edges, a single line reads \"深夜营业\". A thin white rule runs the width of the frame just below the type. Cold light enters from the right at shoulder height, silvering the right edge of her hair and the wet fold of her collar, while the left side of her face falls into blue-grey shadow with a faint warm rim from the store. The composition balances one small warm centre against two large cold fields, holding the whole poster inside grey, amber and off-white."
+  }
+}

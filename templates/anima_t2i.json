@@ -1,0 +1,163 @@
+{
+  "id": "anima_t2i",
+  "label": "Anima 动漫",
+  "strengths": [
+    "二次元",
+    "角色插画",
+    "动漫"
+  ],
+  "purposes": [
+    "anime"
+  ],
+  "dialect": "caption",
+  "notes": "CircleStone Labs 的 2B 动漫模型，1760x1224 原生横幅，适合角色插画与日系风格。",
+  "size": {
+    "native": "1760x1224"
+  },
+  "slots": {
+    "sampler": {
+      "node": "8"
+    },
+    "seed": {
+      "node": "8",
+      "input": "seed"
+    },
+    "steps": {
+      "node": "8",
+      "input": "steps"
+    },
+    "cfg": {
+      "node": "8",
+      "input": "cfg"
+    },
+    "denoise": {
+      "node": "8",
+      "input": "denoise"
+    },
+    "prompt": {
+      "node": "4",
+      "input": "text"
+    },
+    "negative": {
+      "node": "6",
+      "input": "text"
+    },
+    "width": {
+      "node": "5",
+      "input": "width"
+    },
+    "height": {
+      "node": "5",
+      "input": "height"
+    },
+    "batch": {
+      "node": "5",
+      "input": "batch_size"
+    },
+    "save": {
+      "node": "10",
+      "input": "filename_prefix"
+    }
+  },
+  "graph": {
+    "1": {
+      "class_type": "UNETLoader",
+      "inputs": {
+        "unet_name": "anima-aesthetic-v1.0.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    "2": {
+      "class_type": "CLIPLoader",
+      "inputs": {
+        "clip_name": "qwen_3_06b_base.safetensors",
+        "type": "stable_diffusion",
+        "device": "default"
+      }
+    },
+    "3": {
+      "class_type": "VAELoader",
+      "inputs": {
+        "vae_name": "qwen_image_vae.safetensors"
+      }
+    },
+    "4": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "clip": [
+          "2",
+          0
+        ],
+        "text": "masterpiece, best quality, film grain, heavy noise, grainy texture, high ISO, retro anime style, 1girl, solo, Hina Amano, Weathering With You, long black hair with blue tint, twin low ponytails, floating in mid-air, falling through the sky, dynamic pose, legs bent, hands holding near chest, looking back at viewer, blue eyes, blush, slightly parted lips, gentle and ethereal expression, white sleeveless hoodie, denim shorts, brown lace-up boots, white socks, blue stone necklace, choker. Background: sea of clouds, vibrant sunset, deep blue sky, distant sprawling city below, floating water droplets, bubbles, diagonal light rays. Lighting: cinematic lighting, strong backlighting, sun glare, lens flare, glowing clouds, Makoto Shinkai style, ethereal, dreamy, highly detailed, vibrant colors."
+      }
+    },
+    "5": {
+      "class_type": "EmptyLatentImage",
+      "inputs": {
+        "width": 1760,
+        "height": 1224,
+        "batch_size": 1
+      }
+    },
+    "6": {
+      "class_type": "CLIPTextEncode",
+      "inputs": {
+        "clip": [
+          "2",
+          0
+        ],
+        "text": "worst quality, low quality, score_1, score_2, score_3, blurry, jpeg artifacts, sepia"
+      }
+    },
+    "7": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "8",
+          0
+        ],
+        "vae": [
+          "3",
+          0
+        ]
+      }
+    },
+    "8": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": [
+          "1",
+          0
+        ],
+        "positive": [
+          "4",
+          0
+        ],
+        "negative": [
+          "6",
+          0
+        ],
+        "latent_image": [
+          "5",
+          0
+        ],
+        "seed": 747066256959652,
+        "steps": 30,
+        "cfg": 4,
+        "sampler_name": "euler",
+        "scheduler": "simple",
+        "denoise": 1
+      }
+    },
+    "10": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "7",
+          0
+        ],
+        "filename_prefix": "anima"
+      }
+    }
+  }
+}

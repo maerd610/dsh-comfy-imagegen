@@ -1,0 +1,211 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>dsh-comfy-imagegen · 卡片预览</title>
+<style>
+  :root { color-scheme: light dark; --bg: #ffffff; --fg: #16181d; --muted: #6b7280; --line: rgba(0,0,0,.08); }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #14161b; --fg: #e7e9ee; --muted: #9aa3b2; --line: rgba(255,255,255,.08); }
+  }
+  body.dark { --bg: #14161b; --fg: #e7e9ee; --muted: #9aa3b2; --line: rgba(255,255,255,.08); background: #14161b; color: #e7e9ee; }
+  body.light { --bg: #ffffff; --fg: #16181d; --muted: #6b7280; --line: rgba(0,0,0,.08); background: #fff; color: #16181d; }
+  body { margin: 0; padding: 28px 20px 48px; background: var(--bg); color: var(--fg);
+    font: 14px/1.5 -apple-system, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif; }
+  header { max-width: 960px; margin: 0 auto 22px; }
+  h1 { font-size: 15px; margin: 0 0 6px; letter-spacing: .01em; }
+  p.hint { margin: 0; color: var(--muted); font-size: 12.5px; }
+  .themes { display: flex; gap: 8px; margin-top: 12px; }
+  .themes button { font: inherit; font-size: 12px; padding: 4px 12px; border-radius: 999px; cursor: pointer;
+    border: 1px solid var(--line); background: transparent; color: inherit; }
+  .themes button[aria-pressed="true"] { border-color: currentColor; opacity: .95; }
+  .row { max-width: 960px; margin: 0 auto; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start; }
+  .panel { display: flex; flex-direction: column; gap: 10px; }
+  .panel > h2 { font-size: 12px; margin: 0; color: var(--muted); font-weight: 600; letter-spacing: .04em; text-transform: uppercase; }
+</style>
+</head>
+<body>
+<header>
+  <h1>dsh-comfy-imagegen 卡片预览</h1>
+  <p class="hint">本页直接加载 <code>../lib/client.js</code>，用的是插件真实代码与真实 CSS，只是外面套了一层极简 react/DOM shim。计时与进度为静态快照。</p>
+  <div class="themes">
+    <button id="to-light" aria-pressed="false">浅色</button>
+    <button id="to-dark" aria-pressed="false">深色</button>
+  </div>
+</header>
+
+<div class="row">
+  <section class="panel">
+    <h2>进行中</h2>
+    <div id="running"></div>
+  </section>
+  <section class="panel">
+    <h2>已完成</h2>
+    <div id="settled"></div>
+  </section>
+</div>
+
+<script>
+// ---- demo artwork (two data-URI SVGs standing in for generated pictures) ----
+function svgUri(svg) { return 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg) }
+const shotA = svgUri("<svg xmlns='http://www.w3.org/2000/svg' width='760' height='1280'><defs><linearGradient id='s' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#171f38'/><stop offset='.5' stop-color='#5a4a7c'/><stop offset='1' stop-color='#c98a5e'/></linearGradient></defs><rect width='760' height='1280' fill='url(#s)'/><circle cx='520' cy='330' r='66' fill='#ffd9a0'/><path d='M0 900 L240 640 L420 860 L560 700 L760 940 L760 1280 L0 1280 Z' fill='#241c33'/><path d='M0 1050 L300 880 L520 1020 L760 900 L760 1280 L0 1280 Z' fill='#140f1e'/></svg>")
+const shotB = svgUri("<svg xmlns='http://www.w3.org/2000/svg' width='760' height='1280'><defs><linearGradient id='s' x1='0' y1='0' x2='0' y2='1'><stop offset='0' stop-color='#0d2230'/><stop offset='.55' stop-color='#2b6b74'/><stop offset='1' stop-color='#dfae6a'/></linearGradient></defs><rect width='760' height='1280' fill='url(#s)'/><circle cx='250' cy='300' r='54' fill='#ffe9c0'/><path d='M0 960 L200 780 L380 950 L540 820 L760 1010 L760 1280 L0 1280 Z' fill='#0a1a22'/></svg>")
+
+// ---- minimal react ----
+// ---- minimal react (hook storage lives on the mount root) ----
+let hookIndex = 0
+let activeRoot = null
+const react = {
+  createElement(type, props, ...children) {
+    const merged = Object.assign({}, props)
+    const flat = children.length === 0 ? undefined : (children.length === 1 ? children[0] : children)
+    if (flat !== undefined) merged.children = flat
+    return { type, props: merged }
+  },
+  useState(init) {
+    const root = activeRoot
+    const store = root.hooks
+    const i = hookIndex++
+    if (!(i in store.states)) store.states[i] = typeof init === 'function' ? init() : init
+    return [store.states[i], (next) => {
+      store.states[i] = typeof next === 'function' ? next(store.states[i]) : next
+      root.refresh()
+    }]
+  },
+  useEffect(fn, deps) {
+    const store = activeRoot.hooks
+    const i = hookIndex++
+    const prev = store.effects[i]
+    const changed = prev === undefined || deps === undefined ||
+      !Array.isArray(deps) || !Array.isArray(prev) || deps.some((v, k) => v !== prev[k])
+    if (changed) { store.effects[i] = deps; fn() }
+  },
+  useRef(init) {
+    const store = activeRoot.hooks
+    const i = hookIndex++
+    if (!(i in store.refs)) store.refs[i] = { current: init }
+    return store.refs[i]
+  },
+}
+
+// ---- canned status so the running card shows a real phase ----
+const startedAt = Date.now() - 21300
+window.fetch = async () => ({
+  ok: true,
+  json: async () => ({
+    ok: true,
+    runs: [{
+      promptId: 'preview', template: 'anima_t2i', label: 'Anima 动漫', size: '1104x1960', seed: 2593621639,
+      batch: 1, startedAt, phase: 'running', ahead: 0, steps: 30, etaMs: 52000, progress: { value: 17, max: 30 },
+    }],
+  }),
+})
+
+// ---- tiny renderer ----
+const BOOLEAN_ATTRS = new Set(['href', 'src', 'alt', 'title', 'target', 'rel', 'loading', 'decoding'])
+function render(node) {
+  if (node === null || node === undefined || node === false || node === true) return document.createComment('')
+  if (typeof node === 'string' || typeof node === 'number') return document.createTextNode(String(node))
+  if (Array.isArray(node)) {
+    const frag = document.createDocumentFragment()
+    for (const child of node) frag.appendChild(render(child))
+    return frag
+  }
+  if (typeof node.type === 'function') return render(node.type(node.props || {}))
+  const el = document.createElement(node.type)
+  const props = node.props || {}
+  for (const key in props) {
+    const value = props[key]
+    if (key === 'key' || key === 'children' || value === undefined || value === null || value === false) continue
+    if (key === 'className') { el.setAttribute('class', value); continue }
+    if (key === 'style') {
+      for (const name in value) {
+        const styleValue = value[name]
+        if (styleValue === undefined || styleValue === null) continue
+        if (name.indexOf('--') === 0) el.style.setProperty(name, styleValue)
+        else el.style[name] = typeof styleValue === 'number' ? styleValue + 'px' : styleValue
+      }
+      continue
+    }
+    if (key === 'onError') { el.addEventListener('error', value, { once: true }); continue }
+    if (key === 'children') continue
+    if (BOOLEAN_ATTRS.has(key)) { el.setAttribute(key, value); continue }
+    el.setAttribute(key, value === true ? '' : value)
+  }
+  if (props.children !== undefined) el.appendChild(render(props.children))
+  return el
+}
+
+// ---- boot the real bundle ----
+window.__ModuleLoader__ = {
+  load({ factory }) { window.__bundle = factory(() => react) },
+}
+
+function mount(host, block, budget) {
+  function paint() {
+    root.frame = 0
+    hookIndex = 0
+    activeRoot = root
+    const next = render(window.__card(block))
+    activeRoot = null
+    host.replaceChildren(next)
+  }
+  const root = {
+    frame: 0,
+    budget,
+    hooks: { states: [], effects: [], refs: [] },
+    refresh() {
+      if (root.budget <= 0 || root.frame !== 0) return
+      root.budget -= 1
+      root.frame = requestAnimationFrame(paint)
+    },
+  }
+  paint()
+  return root
+}
+
+window.addEventListener('load', () => {
+  const bundle = window.__bundle
+  window.__card = null
+  if (!bundle) {
+    for (const host of document.querySelectorAll('#running, #settled')) {
+      const note = document.createElement('p')
+      note.className = 'hint'
+      note.textContent = '没能加载 ../lib/client.js（浏览器可能禁止 file:// 读取同级脚本）。直接在 DSH 里刷新页面也能看到新卡片。'
+      host.replaceChildren(note)
+    }
+    return
+  }
+  bundle.apply({
+    effect(fn) { fn() },
+    slots: {
+      inject(name, register) { register() },
+      register(spec, component) { window.__card = component },
+    },
+  })
+
+  mount(document.getElementById('running'), { kind: 'call', argsRaw: '{"batch":1,"size":"9:16"}' }, 3)
+  mount(document.getElementById('settled'), {
+    kind: 'tool-result',
+    meta: {
+      ok: true, template: 'anima_t2i', label: 'Anima 动漫', size: '1104x1960', seed: 2593621639,
+      elapsedMs: 51800, count: 1,
+      files: [{ filename: 'best-quality-masterpiece-highres-absurdres-highr-2593621639.png', path: 'C:\\Users\\maerd\\Pictures\\dsh-comfy-imagegen\\2026-10-24\\x.png', url: shotA }],
+    },
+  }, 1)
+
+  const light = document.getElementById('to-light')
+  const dark = document.getElementById('to-dark')
+  const paintButtons = () => {
+    light.setAttribute('aria-pressed', String(document.body.classList.contains('light')))
+    dark.setAttribute('aria-pressed', String(document.body.classList.contains('dark')))
+  }
+  light.addEventListener('click', () => { document.body.className = 'light'; paintButtons() })
+  dark.addEventListener('click', () => { document.body.className = 'dark'; paintButtons() })
+  paintButtons()
+})
+</script>
+<script src="../lib/client.js"></script>
+</body>
+</html>

@@ -1,0 +1,184 @@
+{
+  "id": "qwen_t2i",
+  "label": "Qwen-Image 2.1 文字",
+  "strengths": [
+    "文字",
+    "海报",
+    "排版"
+  ],
+  "purposes": [
+    "typography"
+  ],
+  "dialect": "caption",
+  "notes": "文字渲染与排版最强，1144x1328 竖幅，适合海报、封面、带字画面。",
+  "size": {
+    "native": "1144x1328"
+  },
+  "slots": {
+    "sampler": {
+      "node": "5"
+    },
+    "seed": {
+      "node": "5",
+      "input": "seed"
+    },
+    "steps": {
+      "node": "5",
+      "input": "steps"
+    },
+    "cfg": {
+      "node": "5",
+      "input": "cfg"
+    },
+    "denoise": {
+      "node": "5",
+      "input": "denoise"
+    },
+    "prompt": {
+      "node": "3",
+      "input": "prompt"
+    },
+    "negative": {
+      "node": "3",
+      "input": "negative_prompt"
+    },
+    "width": {
+      "node": "7",
+      "input": "width"
+    },
+    "height": {
+      "node": "7",
+      "input": "height"
+    },
+    "batch": {
+      "node": "7",
+      "input": "batch_size"
+    },
+    "save": {
+      "node": "10",
+      "input": "filename_prefix"
+    }
+  },
+  "graph": {
+    "1": {
+      "class_type": "UNETLoader",
+      "inputs": {
+        "unet_name": "qwen_image_2.1_bf16.safetensors",
+        "weight_dtype": "default"
+      }
+    },
+    "2": {
+      "class_type": "CLIPLoader",
+      "inputs": {
+        "clip_name": "qwen3vl_8b_int8_convrot.safetensors",
+        "type": "qwen_image",
+        "device": "default"
+      }
+    },
+    "3": {
+      "class_type": "TextEncodeQwenImage21",
+      "inputs": {
+        "clip": [
+          "2",
+          0
+        ],
+        "vae": [
+          "4",
+          0
+        ],
+        "prompt": "A photograph taken from straight above a sixteen-year-old girl lying on her back in long summer grass, the length of her set along a slight diagonal from the lower left toward the upper right of the frame. Around her the grass is deep and unmown, blades crossing at every angle, sharp at the near edge of the frame and thickening into soft green beyond her shoulders; a few dry seed heads stand above the rest near the top edge, and the turf is pressed pale where she has been lying a while. Her head is turned a little to the left, one cheek flat against the ground, her eyes closed, her mouth relaxed. Her hair is straight and black, spread in a loose fan above her head, a few strands caught in the blades. She wears a white cotton T-shirt whose sleeve edge lies folded on her upper arm, and dark blue shorts; one knee is bent, the other leg stretches out and disappears into the grass at the lower right corner. Her hands are folded on her stomach, the fingers loosely interlaced. Low afternoon light comes in from the left, warm and a little hazy, skimming the tops of the grass so the near blades glow yellow-green and the far ones fall cool; her shadow runs a short way to the right and breaks up in the turf. The upper left corner is open grass, deeper and quieter, holding the figure in place. The photograph keeps to greens and golds, warm skin, white cotton and denim blue, sunlit and still.",
+        "negative_prompt": "score_1, score_2, score_3, blurry, worst quality, low quality, jpeg artifacts, signature, watermark, username, error, deformed hands, bad anatomy, extra limbs, poorly drawn hands, poorly drawn face, mutation, deformed, extra eyes, extra arms, extra legs, malformed limbs, fused fingers, too many fingers, long neck, cross-eyed, bad proportions, missing arms, missing legs, extra digit, fewer digits, cropped, normal quality, uterus, monochrome, greyscale, lineart, uncensored, disembodied penis,",
+        "resolution": 1024
+      }
+    },
+    "4": {
+      "class_type": "VAELoader",
+      "inputs": {
+        "vae_name": "qwen_image_2.1_vae_bf16.safetensors"
+      }
+    },
+    "5": {
+      "class_type": "KSampler",
+      "inputs": {
+        "model": [
+          "6",
+          0
+        ],
+        "positive": [
+          "3",
+          0
+        ],
+        "negative": [
+          "3",
+          1
+        ],
+        "latent_image": [
+          "8",
+          0
+        ],
+        "seed": 645098070265831,
+        "steps": 30,
+        "cfg": 1,
+        "sampler_name": "er_sde",
+        "scheduler": "simple",
+        "denoise": 1
+      }
+    },
+    "6": {
+      "class_type": "QwenImage21Cache",
+      "inputs": {
+        "model": [
+          "1",
+          0
+        ],
+        "device": "auto",
+        "dtype": "default"
+      }
+    },
+    "7": {
+      "class_type": "EmptyLatentImage",
+      "inputs": {
+        "width": 1144,
+        "height": 1328,
+        "batch_size": 1
+      }
+    },
+    "8": {
+      "class_type": "ComfySwitchNode",
+      "inputs": {
+        "on_false": [
+          "3",
+          2
+        ],
+        "on_true": [
+          "7",
+          0
+        ],
+        "switch": true
+      }
+    },
+    "9": {
+      "class_type": "VAEDecode",
+      "inputs": {
+        "samples": [
+          "5",
+          0
+        ],
+        "vae": [
+          "4",
+          0
+        ]
+      }
+    },
+    "10": {
+      "class_type": "SaveImage",
+      "inputs": {
+        "images": [
+          "9",
+          0
+        ],
+        "filename_prefix": "ComfyUI"
+      }
+    }
+  }
+}

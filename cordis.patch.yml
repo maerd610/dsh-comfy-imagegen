@@ -1,0 +1,28 @@
+# dsh-comfy-imagegen bundle patch
+#
+# Installed by the `dsh-comfy-imagegen` npm package. The bundle loader reads
+# `dsh.bundle.patch` from package.json and merges the entries below into the
+# profile's cordis.patch.yml — nothing is written into the user's profile.
+#
+# Everything under `config` is optional; the defaults target a stock local
+# ComfyUI. `baseUrl` is the only setting most people ever touch.
+- insert:
+    - id: imagegen
+      name: 'dsh-comfy-imagegen'
+      config:
+        baseUrl: 'http://127.0.0.1:8188'
+        # outputDir: '~/Pictures/dsh-comfy-imagegen'
+        # templateDirs:
+        #   - 'D:\AI\ComfyUI\user\default\workflows'
+        # timeoutMs: 900000
+
+# The two skills this package carries (`prompt-director`, `imagegen`) live in
+# `skills/`. The root is resolved from the installed package identity anchored
+# at the profile Loader baseUrl, never by concatenating a path onto it.
+- insert:
+    - id: imagegen-skill-filesystem
+      name: '@deepseek-ai/dsh-skill-filesystem'
+      config:
+        providerName: imagegen-plugin
+        includeDefaultRoots: false
+        bundledSkillDir: !!js process.getBuiltinModule('node:path').join(process.getBuiltinModule('node:path').dirname(process.getBuiltinModule('node:module').createRequire(baseUrl).resolve('dsh-comfy-imagegen/package.json')), 'skills')

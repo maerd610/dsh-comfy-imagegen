@@ -1,0 +1,12 @@
+# 依赖与产物（本插件零运行时依赖，正常不会有 node_modules）
+node_modules/
+dist/
+*.tgz
+
+# 本机缓存：出图记录、调试脚本、/object_info 快照（约 36MB）
+.cache/
+
+# 编辑器 / 系统垃圾
+.DS_Store
+Thumbs.db
+*.log
