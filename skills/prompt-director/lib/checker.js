@@ -1,5 +1,12 @@
 export const CATEGORIES = ['poster', 'illustration', 'photograph', 'product', 'character'];
 
+// An edit is a delta plus its invariants, so it is shorter than a caption and
+// it must contain a hold clause and no fresh frame description.
+export const EDIT_LENGTH = [40, 220];
+const HOLD_MARKER =
+  /\b(unchanged|unmoved|untouched|stays?|stay the same|preserv\w*|keep\w*|holding|holds?|everything else|as before|remains?)\b|保持不变|不变|保持原样|其余|照旧/i;
+const POSITIONAL_OPENER = /\b(in|on|at|behind|above|below|across|beneath|under|beside|against|along)\s+(the|her|his|their|its)\b/gi;
+
 const STRUCTURE = {
   heading: /^#{1,6}\s/m,
   fence: /```/,
@@ -63,20 +70,25 @@ export function wordCount(text) {
  * Deterministic checks only. Nothing here judges taste — it catches the
  * failures that are objectively wrong for an image prompt.
  */
-export function checkPrompt({ text, category = 'illustration', copy = [] } = {}) {
+export function checkPrompt({ text, category = 'illustration', copy = [], edit = false, held = [] } = {}) {
   const errors = [];
   const warnings = [];
   const body = typeof text === 'string' ? text : '';
 
   if (!body.trim()) {
     errors.push('paragraph is empty');
-    return { ok: false, errors, warnings, stats: { words: 0, category, copy: copy.length, labels: 0 } };
+    return {
+      ok: false,
+      errors,
+      warnings,
+      stats: { words: 0, category, copy: copy.length, labels: 0, edit, held: held.length },
+    };
   }
 
   if (STRUCTURE.heading.test(body)) errors.push('heading found — return one plain paragraph');
   if (STRUCTURE.fence.test(body)) errors.push('code fence found — return plain text');
   if (STRUCTURE.json.test(body)) errors.push('JSON found — the prompt must be prose, not a schema');
-  if (STRUCTURE.bullets.test(body)) warnings.push('bullet list found — prose reads better for image models');
+  if (STRUCTURE.bullets.test(body) && !edit) warnings.push('bullet list found — prose reads better for image models');
   if (STRUCTURE.leadingQuote.test(body)) warnings.push('paragraph opens with a quote — unquote the whole paragraph');
 
   for (const re of QUALITY_BOOSTERS) {
@@ -115,10 +127,44 @@ export function checkPrompt({ text, category = 'illustration', copy = [] } = {})
     if (!body.includes(phrase)) errors.push(`required copy "${phrase}" missing verbatim`);
   }
 
-  const bounds = LENGTH[category] ?? LENGTH.illustration;
   const words = wordCount(body);
-  if (words < bounds[0]) warnings.push(`${words} words for ${category} — thin coverage, add positions and light, not adjectives`);
-  if (words > bounds[1]) warnings.push(`${words} words for ${category} — cut every sentence that would not change the render`);
 
-  return { ok: errors.length === 0, errors, warnings, stats: { words, category, copy: copy.length, labels } };
+  if (edit) {
+    if (!HOLD_MARKER.test(body)) {
+      errors.push('no hold clause — an edit must say what survives ("everything else unchanged", a keep list, "preserved")');
+    }
+    if (held.length > 5) warnings.push(`${held.length} invariants — name the two to five things that actually drift`);
+    for (const term of held) {
+      const needle = typeof term === 'string' ? term.trim().toLowerCase() : '';
+      if (needle && !body.toLowerCase().includes(needle)) {
+        errors.push(`held invariant "${term}" is on the metadata line but not named in the prompt`);
+      }
+    }
+    if (labels === 0) warnings.push('no image label — say "image 1" (or 图一) so the model knows what it is editing');
+    const openers = (body.match(POSITIONAL_OPENER) ?? []).length;
+    if (openers > 6) warnings.push(`${openers} positional clauses — that reads as a frame description, not a delta`);
+  }
+
+  const bounds = edit ? EDIT_LENGTH : LENGTH[category] ?? LENGTH.illustration;
+  if (words < bounds[0]) {
+    warnings.push(
+      edit
+        ? `${words} words for an edit — too short to name the target, the change and the hold`
+        : `${words} words for ${category} — thin coverage, add positions and light, not adjectives`,
+    );
+  }
+  if (words > bounds[1]) {
+    warnings.push(
+      edit
+        ? `${words} words for an edit — cut back to the delta and its invariants; a walk around the frame repaints what you meant to keep`
+        : `${words} words for ${category} — cut every sentence that would not change the render`,
+    );
+  }
+
+  return {
+    ok: errors.length === 0,
+    errors,
+    warnings,
+    stats: { words, category, copy: copy.length, labels, edit, held: held.length },
+  };
 }

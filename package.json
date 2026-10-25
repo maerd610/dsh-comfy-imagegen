@@ -1,7 +1,7 @@
 {
   "name": "dsh-comfy-imagegen",
-  "version": "0.1.0",
-  "description": "Conversational image generation for DeepSeek Harness, backed by a local ComfyUI.",
+  "version": "0.2.0",
+  "description": "Conversational image generation for DeepSeek Harness, backed by your local ComfyUI.",
   "license": "MIT",
   "type": "module",
   "main": "./lib/index.js",
@@ -14,11 +14,23 @@
     "lib",
     "templates",
     "skills",
-    "cordis.patch.yml"
+    "scripts",
+    "cordis.patch.yml",
+    "CHANGELOG.md"
   ],
   "engines": {
     "node": "^22.19.0 || >=24.0.0"
   },
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "comfyui",
+    "image-generation",
+    "text-to-image",
+    "stable-diffusion",
+    "flux",
+    "qwen-image"
+  ],
   "dsh": {
     "bundle": {
       "patch": "./cordis.patch.yml"
@@ -28,6 +40,7 @@
     }
   },
   "scripts": {
-    "smoke": "node scripts/smoke.mjs"
+    "self-check": "node scripts/smoke.mjs --verbose",
+    "template": "node scripts/template.mjs"
   }
 }

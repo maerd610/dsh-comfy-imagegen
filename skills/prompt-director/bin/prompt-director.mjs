@@ -8,6 +8,7 @@ const USAGE = `prompt-director — deterministic checks for image prompts
 
 Usage:
   prompt-director check --file draft.txt [--category poster] [--copy "on-image text"]...
+  prompt-director check --text "In this room photo…" --edit [--held "face, hair, light"]
   prompt-director check --text "A vertical poster…" [--json]
 
 Options:
@@ -15,6 +16,8 @@ Options:
   --text <string>      pass the paragraph inline
   --category <name>    ${CATEGORIES.join(' | ')}   (default: illustration)
   --copy <string>      required verbatim string; repeat for each string
+  --edit               check an edit prompt: hold clause, keep list, delta length
+  --held <list>        invariants from the held: line, comma separated; each must be named
   --json               machine-readable result
   -h, --help           this text
 
@@ -22,7 +25,8 @@ Exit codes:
   0 pass (warnings allowed)   1 errors   2 usage
 
 What it checks: output shape, boosters, camera kit, ratio in prose, reference
-leakage, negation, hedge density, required copy, length band.
+leakage, negation, hedge density, required copy, length band; with --edit also
+the hold clause, missing invariants, and a re-described frame.
 What it cannot check: whether the picture is good.
 `;
 
@@ -42,6 +46,8 @@ async function main(argv) {
         text: { type: 'string' },
         category: { type: 'string' },
         copy: { type: 'string', multiple: true },
+        edit: { type: 'boolean' },
+        held: { type: 'string', multiple: true },
         json: { type: 'boolean' },
         help: { type: 'boolean', short: 'h' },
       },
@@ -72,7 +78,12 @@ async function main(argv) {
   }
   if (!text) fail(2, 'provide --file or --text\n\n' + USAGE);
 
-  const result = checkPrompt({ text, category, copy: values.copy ?? [] });
+  const held = (values.held ?? [])
+    .flatMap((entry) => entry.split(/[,、;]/))
+    .map((entry) => entry.trim())
+    .filter(Boolean);
+
+  const result = checkPrompt({ text, category, copy: values.copy ?? [], edit: values.edit === true, held });
 
   if (values.json) {
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
@@ -81,7 +92,8 @@ async function main(argv) {
     for (const item of result.errors) lines.push(`error   ${item}`);
     for (const item of result.warnings) lines.push(`warning ${item}`);
     lines.push(
-      `${result.ok ? 'pass' : 'fail'} — ${result.stats.words} words, ${category}, ` +
+      `${result.ok ? 'pass' : 'fail'} — ${result.stats.words} words, ` +
+        `${values.edit ? 'edit' : category}, ` +
         `${result.errors.length} error(s), ${result.warnings.length} warning(s)`,
     );
     process.stdout.write(`${lines.join('\n')}\n`);

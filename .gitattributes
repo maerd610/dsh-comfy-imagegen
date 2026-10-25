@@ -1,0 +1,6 @@
+# Keep the repository LF; the files are consumed by Node and git-for-windows
+# otherwise rewrites every one of them on checkout.
+* text=auto eol=lf
+*.png binary
+*.jpg binary
+*.webp binary

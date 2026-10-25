@@ -59,13 +59,22 @@ The template you pick decides the dialect. `caption` is the default everywhere;
 answer over your assumptions, and re-read it if the user says a model is
 installed now.
 
-| the picture is | `purpose` | typically |
+| the picture is | `purpose` | pick the template that |
 | --- | --- | --- |
-| anime, manga, character art | `anime` | anima |
-| poster, cover, anything with real text | `typography` | qwen |
-| layout-exact, dense Chinese copy | `layout` | moss |
-| photographic, painterly, stylised | `art` | krea2 |
-| change a picture the user already has | `edit` | qwen_edit |
+| anime, manga, character art | `anime` | was made for illustrated characters |
+| poster, cover, anything with real text | `typography` | renders legible type |
+| layout-exact, dense Chinese copy | `layout` | places elements at fixed positions |
+| photographic, painterly, stylised | `art` | has the widest aesthetic range |
+| change a picture the user already has | `edit` | takes a source image |
+
+The purpose tags are conventions, not a closed list — a template can declare any
+tag it likes, and `image_capabilities` prints what each one is for in its notes.
+Name a template directly only when the user names one or a previous run already
+proved the fit.
+
+Bundled templates are examples tied to the author's own model files; on your
+machine most of them will fail their self-check until you point the plugin at
+your own workflows. That is expected, and the fix is configuration, not code.
 
 A template whose self-check fails is not a bug to work around: the error names
 the missing file, and the honest move is to tell the user that file is missing,
@@ -84,6 +93,14 @@ have.
 - `image` — for edit templates: the local absolute path or URL of the source
   picture. Write the prompt as an instruction that points at it (`<image1>`),
   saying what becomes what and what must stay; the output keeps the source shape.
+
+- `params` — any other knob the chosen template exposes
+  (`sampler_name`, `scheduler`, `denoise`, a second seed, an upscale factor):
+  pass it as an object keyed by the slot name `image_capabilities` printed under
+  「槽位」. `params` beats the named arguments above; keys the template never
+  declared come back in `ignoredParams`, so check that array instead of assuming
+  the knob took effect. Use it to answer "try a different sampler" or "how does
+  this look at 8 steps" without editing any file.
 
 Leave `steps` and `cfg` alone unless the user is debugging the picture; the
 templates ship with trained values.

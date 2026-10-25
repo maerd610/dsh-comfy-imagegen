@@ -6,12 +6,18 @@
 #
 # Everything under `config` is optional; the defaults target a stock local
 # ComfyUI. `baseUrl` is the only setting most people ever touch.
+#
+# To use your own models, point the plugin at a folder of templates
+# (`templateDirs`) or at ComfyUI itself (`comfyUiDir` — its
+# `user/default/workflows` is then searched automatically). Directories are
+# searched in order; on an id clash the earlier directory wins.
 - insert:
     - id: imagegen
       name: 'dsh-comfy-imagegen'
       config:
         baseUrl: 'http://127.0.0.1:8188'
         # outputDir: '~/Pictures/dsh-comfy-imagegen'
+        # comfyUiDir: 'D:\AI\ComfyUI'
         # templateDirs:
         #   - 'D:\AI\ComfyUI\user\default\workflows'
         # timeoutMs: 900000
