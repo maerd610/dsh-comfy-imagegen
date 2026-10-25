@@ -3,6 +3,14 @@
   "version": "0.2.0",
   "description": "Conversational image generation for DeepSeek Harness, backed by your local ComfyUI.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/maerd610/dsh-comfy-imagegen.git"
+  },
+  "homepage": "https://github.com/maerd610/dsh-comfy-imagegen#readme",
+  "bugs": {
+    "url": "https://github.com/maerd610/dsh-comfy-imagegen/issues"
+  },
   "type": "module",
   "main": "./lib/index.js",
   "exports": {
