@@ -31,9 +31,13 @@
 
 ## 安装
 
+先把仓库放到本机任意目录：`git clone https://github.com/maerd610/dsh-comfy-imagegen.git`，
+或者从 [Releases](https://github.com/maerd610/dsh-comfy-imagegen/releases) 下 zip 解压。位置随意，
+插件本身不写死路径。
+
 **推荐做法：把下面这句直接发给 DSH 里的 agent，让它替你装。**
 
-> 帮我安装本地插件 D:\Harness\dsh-comfy-imagegen：把它 link 进当前 profile 的依赖、
+> 帮我安装本地插件 <刚放好的那个目录>：把它 link 进当前 profile 的依赖、
 > 加进 `dsh.profile.bundles`，然后把 ComfyUI 地址（我的是 http://127.0.0.1:8188）
 > 写进 `imagegen` 那条配置。装完告诉我该重启了。
 
