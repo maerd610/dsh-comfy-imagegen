@@ -1,6 +1,6 @@
 {
   "name": "dsh-comfy-imagegen",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Conversational image generation for DeepSeek Harness, backed by your local ComfyUI.",
   "license": "MIT",
   "repository": {
@@ -23,6 +23,7 @@
     "templates",
     "skills",
     "scripts",
+    "preview",
     "cordis.patch.yml",
     "CHANGELOG.md"
   ],
@@ -49,6 +50,7 @@
   },
   "scripts": {
     "self-check": "node scripts/smoke.mjs --verbose",
+    "probe": "node scripts/probe-progress.mjs",
     "template": "node scripts/template.mjs"
   }
 }

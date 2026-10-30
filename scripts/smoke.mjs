@@ -30,9 +30,49 @@ apply(ctx, {
 })
 console.error(`registered: ${[...registered.keys()].join(', ')}`)
 
+/**
+ * The host rejects tool output the declared schema does not describe, so the
+ * self-check has to apply the same rule — otherwise a stray key passes here and
+ * every real call dies with "is not a declared property".
+ */
+function schemaViolations(schema, value, path = 'value', out = []) {
+  if (value === undefined) return out
+  const kind = schema?.type
+  const fits =
+    kind === undefined ? true
+    : kind === 'object' ? value !== null && typeof value === 'object' && !Array.isArray(value)
+    : kind === 'array' ? Array.isArray(value)
+    : kind === 'string' ? typeof value === 'string'
+    : kind === 'number' ? typeof value === 'number'
+    : kind === 'boolean' ? typeof value === 'boolean'
+    : true
+  if (!fits) return out.push(`"${path}" must be ${kind}`)
+  if (Array.isArray(value)) {
+    if (schema.items) for (let index = 0; index < value.length; index++) schemaViolations(schema.items, value[index], `${path}[${index}]`, out)
+    return out
+  }
+  if (value === null || typeof value !== 'object') return out
+  for (const key of schema.required ?? []) if (value[key] === undefined) out.push(`"${path}.${key}" is required`)
+  const declared = schema.properties ?? {}
+  for (const [key, entry] of Object.entries(value)) {
+    if (entry === undefined) continue
+    if (Object.hasOwn(declared, key)) schemaViolations(declared[key], entry, `${path}.${key}`, out)
+    else if (schema.additionalProperties === false) out.push(`"${path}.${key}" is not a declared property (additionalProperties: false)`)
+  }
+  return out
+}
+
+function assertOutputSchema(tool, result) {
+  const violations = schemaViolations(tool.output.schema, result)
+  if (violations.length === 0) return
+  console.error(`输出 schema 校验失败（宿主会拒绝这次调用）:\n${violations.map((line) => `  - ${line}`).join('\n')}`)
+  process.exitCode = 1
+}
+
 const capabilities = registered.get('image_capabilities')
 const verbose = args.includes('--verbose')
 const report = await capabilities.execute({ verbose })
+assertOutputSchema(capabilities, report)
 console.log(capabilities.output.render({ verbose }, report).map((block) => block.text).join('\n'))
 
 if (prompt !== undefined) {
@@ -49,9 +89,10 @@ if (prompt !== undefined) {
     params: value('--params') === undefined ? undefined : JSON.parse(value('--params')),
   })
   console.log(JSON.stringify(result, null, 2))
+  assertOutputSchema(generate, result)
   console.log(generate.output.render({}, result).map((block) => block.text).join('\n'))
   console.error(`wall clock: ${((Date.now() - startedAt) / 1000).toFixed(1)}s`)
 }
 
 // The progress socket keeps the event loop alive; the host tears it down via ctx.effect.
-process.exit(0)
+process.exit(process.exitCode ?? 0)

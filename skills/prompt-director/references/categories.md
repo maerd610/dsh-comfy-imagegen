@@ -2,13 +2,15 @@
 
 The paragraph shape follows the deliverable, not the user's habit. Infer the category from the brief; name it only when the choice changes the output.
 
-| | Medium noun | Reading mode | Density (units / strings) | Text policy | Length |
+| | Medium noun | Reading mode | Density (units / strings) | Text policy | Length band |
 |---|---|---|---|---|---|
-| poster | "poster" + print process | used, regions | 15–25 / 5–20 | expected; plan the type zone | 400–550 |
-| illustration | "illustration" + medium | looked at, single subject | 8–14 / 0–3 | only if asked, or one small sign | 250–350 |
-| photograph | "photograph" + light discipline | looked at, single subject | 8–14 / 0–3 | signage the place owns, nothing invented | 250–350 |
-| product | "product photograph / rendering" | used, single object | 12–18 / 0–4 | none unless packaging copy is given | 250–350 |
-| character | "character design sheet" | used, regions | 15–25 / 2–6 | name and labels optional | 300–400 |
+| poster | "poster" + print process | used, regions | 15–25 / 5–20 | expected; plan the type zone | 200–600 |
+| illustration | "illustration" + medium | looked at, single subject | 8–14 / 0–3 | only if asked, or one small sign | 140–420 |
+| photograph | "photograph" + light discipline | looked at, single subject | 8–14 / 0–3 | signage the place owns, nothing invented | 120–400 |
+| product | "product photograph / rendering" | used, single object | 12–18 / 0–4 | none unless packaging copy is given | 120–400 |
+| character | "character design sheet" | used, regions | 15–25 / 2–6 | name and labels optional | 140–460 |
+
+The medium noun is not decoration. A paragraph that names no medium gets the renderer's default look, and the default look of most checkpoints is photographic or generic anime — which is why "everything I ask for comes out realistic" is usually a missing medium, not a missing adjective. Name it in the first clause: "a gouache poster, visible paper grain", "pixel art on a sixteen-colour palette", "an ink line drawing with flat colour fills". The style word then has something to attach to.
 
 Deliverables outside the five, and where they land: screenshot, page, package, slide, comic panel, diagram, logo, pattern, texture. A screenshot is a layered frame and reads as `poster` for density purposes; a comedic full-page comic is a read frame and runs 500–700 words, one paragraph per panel group; a logo is a used frame with a single mark and almost no text.
 

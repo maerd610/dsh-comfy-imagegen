@@ -5,6 +5,9 @@
 
 不联网、不调云端、没有 API key —— 用的就是你自己那台 ComfyUI 和里面的模型。
 
+当前版本 **0.3.0**（这一版修好了「进度条永远不动」，卡片能显示真实的采样步数和潜空间预览），
+逐版改动见 [CHANGELOG.md](CHANGELOG.md)。
+
 > 你：画一只在雨夜便利店里吃关东煮的猫
 > agent：…（问清主体、构图、要不要文字）→ 扩写成一段完整描述
 > agent：调用 `image_generate`，40 秒后图出现在对话里，同时落盘到 `outputDir`
@@ -18,10 +21,14 @@
 
 - **`image_generate`** —— 出图。文本生图、改图（给一张源图）、一次多张、指定尺寸/种子/步数。
 - **`image_capabilities`** —— 自查。这台机器能跑哪些模板、缺哪个模型文件、每个模板的默认参数和可选项。
+- **`image_workflow`** —— 改工作流本身。看某个模板的每个节点和输入、把 LoRA 权重/采样器/分辨率固定住、
+  加节点换接线、把改好的另存成新模板。它和出图是两个工具：画图不会碰工作流，改工作流也不会顺手出图。
 - **两个技能**（随包带走，不用另外装）：`prompt-director` 负责把一句话扩成真能出好图的描述；
   `imagegen` 负责什么时候该问、该选哪个模板、出图后怎么展示和重生成。
 
-进度是实时的：卡片先按目标比例占位，跑图时显示队列位置和耗时，出图后原地换成图。
+进度是实时的，而且是两条线：卡片先按目标比例占位，跑图时显示队列位置和每一步的采样进度，
+采样中途的潜空间预览也在同步刷新（`GET /imagegen/preview?promptId=…`），跑完原地换成成图。
+WebSocket 断了会自动重连，宿主没有 WebSocket 时退化成纯轮询。
 
 ## 装之前，先确认三件事
 
@@ -64,6 +71,11 @@ Desktop 版的 `desktop` profile 由 Electron 独占，别往那儿装。
 
 不想开界面验证也行，在插件目录里 `npm run self-check` 会直接打印同样的一份报告。
 
+如果只想知道「逐步进度和潜空间预览到底推不推」——这是卡片上进度条和模糊底图的来源——
+跑 `npm run probe`：它绕过 DSH 直接连你的 ComfyUI，跑一张最小尺寸的图，把收到的每个采样 tick
+和每一帧预览都打出来，最后一行是 `ticks N  previews M  images 1`。退出码 0 说明这条链路在你这台
+机器上是通的；ComfyUI 关掉了 `/ws` 或者被反代挡了，这里会立刻显出来。
+
 ## 换成你自己的模型和工作流
 
 有三种方式，从省事到讲究：
@@ -83,6 +95,29 @@ Desktop 版的 `desktop` profile 由 Electron 独占，别往那儿装。
 
 > 判断标准只有一条：`image_capabilities` 里它是 ✓。✗ 说明这台机器缺东西，报错里会写清楚缺哪个文件、
 > 该放进 ComfyUI 的哪个模型目录（checkpoints、loras、vae、text_encoders…）。
+
+## 改工作流：`image_workflow`
+
+出图改的是画面，改工作流改的是「图是怎么被造出来的」。这两件事被拆成两个工具，是为了让一句
+「画一只猫」不必背上一整套图操作的上下文；agent 也只在你真的说「把 LoRA 降到 0.6」「换个采样器」
+「这份工作流再存一版」时才用这个工具。
+
+| `action` | 干什么 |
+| --- | --- |
+| `list` | 列出所有模板 id |
+| `inspect` | 逐节点列出一个模板的 `class_type`、当前输入、连线和这个输入能吃哪些值 |
+| `set` | 把某些节点输入固定住（`{节点id: {输入名: 值}}`，`null` 取消固定），一直生效到 `clear` |
+| `clear` | 取消一个模板上的所有固定值，回到文件里原本的参数 |
+| `write` | 加节点/删节点/改接线后另存为新模板；存完会重新加载校验一遍，跑不起来当场报错 |
+| `delete` | 只删 `write` 写在 `<outputDir>/workflows/` 里的模板；内置模板、ComfyUI 画布文件、你 `templateDirs` 里的文件都不碰 |
+
+两种东西落在哪，看这里：
+
+- **固定值**（`set`）不动你的工作流文件，存在 `<outputDir>/.workflow-overrides.json`，
+  提交前才套到克隆出来的图上。所以 `anima` 永远还是那个 `anima`，想还原就 `clear`。
+- **另存的模板**（`write`）写在 `<outputDir>/workflows/` 下，是插件格式的模板文件，和 ComfyUI 的
+  `user/default/workflows` 分开 —— 免得 DSH 生成的模板混进你在 ComfyUI 里自己存的那堆。
+  这个目录插件自己会扫描（排在你的 `templateDirs` 之后、内置模板之前），写完当场就能拿来出图。
 
 ## 参数怎么调
 
@@ -105,14 +140,18 @@ baseUrl: http://127.0.0.1:8188
 outputDir: ~/Pictures/dsh-comfy-imagegen
 templateDirs: []
 comfyUiDir: ''
+preferLocal: true
+templateMeta: {}
 ```
 
 | 键 | 默认 | 说明 |
 | --- | --- | --- |
 | `baseUrl` | `http://127.0.0.1:8188` | ComfyUI 地址，换了端口或跑在另一台机器上就改这里 |
-| `outputDir` | `~/Pictures/dsh-comfy-imagegen` | 图和同名 `.json` 记录落在哪，按日期分子目录 |
+| `outputDir` | `~/Pictures/dsh-comfy-imagegen` | 图和同名 `.json` 记录落在哪，按日期分子目录；`image_workflow` 的固定值和另存模板也在这里 |
 | `templateDirs` | `[]` | 额外模板目录，写在前面的优先；同 id 时你目录里的盖掉内置的 |
 | `comfyUiDir` | 空 | ComfyUI 根目录，设了就会自动读它的 `user/default/workflows` |
+| `preferLocal` | `true` | 自动挑模板时优先用你自己的工作流（`templateDirs`、`comfyUiDir`、`<outputDir>/workflows` 里的），内置示例只在没有可用的本地模板时上场。改成 `false` 就反过来 |
+| `templateMeta` | `{}` | 按模板 id 补标签：`{anima_paint: {label: '我的厚涂', strengths: ['人像'], purposes: ['anime'], dialect: 'tags'}}`，工作流文件不用改 |
 | `timeoutMs` | `900000` | 单次出图最多等多久 |
 
 改完配置要重启 DSH 才生效（不用重装）。
@@ -127,6 +166,7 @@ comfyUiDir: ''
 | 提交后服务端 400 / 校验失败 | 工作流里有自定义节点没装 | 看报错里的节点类型，去 ComfyUI 装对应插件 |
 | 跑到一半超时 | 模型太大、显存不够、在换页 | 调大 `timeoutMs`，或降尺寸/步数 |
 | 出图没问题但步数没变 | `params` 里的键名拼错了 | 用 `image_capabilities --verbose` 核对槽位名 |
+| 卡片只有转圈、没有逐步进度 | 这个构建不推 `progress`，或者 `/ws` 被反代挡住了 | 插件会自动退化成轮询，图照样出来，只是没有进度条 |
 | 装完完全没反应 | 没重启到进程级 | 完全退出 DSH 再打开，别只关窗口 |
 
 ## 已知限制
@@ -134,9 +174,11 @@ comfyUiDir: ''
 - 一次只跑一个生成任务，排队等前一张。（这样显存不会被两份模型同时抢。）
 - 批量出图共用同一个提示词和种子，图之间的差别只是采样噪声。
 - 改图支持「给一张图改成什么」，还不支持蒙版局部重绘。
-- 步数进度条只有部分 ComfyUI 版本会推送到外部连接，很多构建（包括作者测试的 0.42.5）不推送，
-  这时只显示阶段和耗时 —— 不是卡住。
+- 采样进度和潜空间预览走 ComfyUI 的 WebSocket。关掉 `/ws`、走反代、或用极旧的构建时，
+  卡片只剩阶段和耗时 —— 图本身不受影响。
 - ComfyUI 必须能被本机以 HTTP 访问；纯云端 API 不走这条路。
+- `image_workflow` 的 `write` 只做结构改动（增删节点、改接线、改输入）。它不替你补模型权重，
+  所以写完会重新加载校验一次，但真正的把关还是跑一张图。
 
 ## 许可
 

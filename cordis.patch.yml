@@ -11,6 +11,15 @@
 # (`templateDirs`) or at ComfyUI itself (`comfyUiDir` — its
 # `user/default/workflows` is then searched automatically). Directories are
 # searched in order; on an id clash the earlier directory wins.
+#
+# `<outputDir>/workflows` is always searched as well — that is where
+# `image_workflow write` saves a template it built, so a workflow saved from the
+# chat is usable straight away.
+#
+# `preferLocal` (on by default) decides what "no template named" means: the
+# user's own workflows first, the bundled examples only as a fallback.
+# `templateMeta` tags a template by id — label, strengths, purposes, dialect,
+# notes — so a raw ComfyUI canvas file can describe itself without being edited.
 - insert:
     - id: imagegen
       name: 'dsh-comfy-imagegen'
@@ -20,6 +29,11 @@
         # comfyUiDir: 'D:\AI\ComfyUI'
         # templateDirs:
         #   - 'D:\AI\ComfyUI\user\default\workflows'
+        # preferLocal: true
+        # templateMeta:
+        #   my_paint:
+        #     label: '我的厚涂'
+        #     purposes: ['anime']
         # timeoutMs: 900000
 
 # The two skills this package carries (`prompt-director`, `imagegen`) live in

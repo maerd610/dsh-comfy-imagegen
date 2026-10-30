@@ -6,6 +6,10 @@ dist/
 # 本机缓存：出图记录、调试脚本、/object_info 快照（约 36MB）
 .cache/
 
+# 本机跑出来的计时和固定值（每台机器都不一样，别进仓库）
+.timings.json
+.workflow-overrides.json
+
 # 编辑器 / 系统垃圾
 .DS_Store
 Thumbs.db

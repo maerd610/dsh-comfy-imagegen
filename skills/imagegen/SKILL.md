@@ -1,9 +1,14 @@
 ---
 name: imagegen
-description: Turn a request into a finished picture with the local ComfyUI — clarify only when the brief is genuinely thin, write the prompt, pick a template, run it, and show the result. Use whenever someone asks for an image to be made or changed: "画一张…", "生成一张海报", "帮我配个图", "把这张图改成…", "再来一版". Also use when a previous generation needs a re-roll, a size change, or a different style. Not for describing images that already exist.
+description: >-
+  Turn what the user asks for into a finished picture with the local ComfyUI:
+  read the ask, expand it with prompt-director, run image_generate, end the turn
+  with the picture. Use for 画一张 / 生成一张 / 帮我配个图 / 把这张图改成 / 再来一版,
+  for re-rolls, size changes and style changes — not for describing images that
+  already exist.
 license: MIT
 metadata:
-  version: "0.1.0"
+  version: "0.3.0"
   author: dsh-comfy-imagegen contributors
 ---
 
@@ -14,50 +19,54 @@ you decide what the frame contains, which model here can actually render it, and
 then you run it. Never hand the user a prompt to paste somewhere else, and never
 claim a picture exists before `image_generate` returned one.
 
-## Step 1 — Is the brief thick enough to shoot?
+## The loop — every request, every round
 
-Ask only when the picture could go several genuinely different ways. Two to
-three questions, never a questionnaire, and never for details you can decide
-yourself.
+1. **Read the ask.** Decide subject, usage, and ratio yourself. Ask a question
+   only when the picture could go several genuinely different ways; two at most,
+   never a questionnaire, never about lighting/lens/palette/composition.
+2. **Expand the prompt with `prompt-director`.** This step is not optional, even
+   for a one-word ask. Load that skill (the `skill` tool, name
+   `prompt-director`) and follow it: triage, target profile, one continuous
+   paragraph, quoted in-image text in its own script, no booster filler. When the
+   skill is unavailable, write the paragraph by the rules under *Writing the
+   prompt* below.
+3. **Run it.** Call `image_generate` with the expanded paragraph. Say one short
+   line as the card starts — what is being made and at what ratio. The card
+   streams real sampler steps and the latent preview; do not narrate progress.
+4. **Close the turn with the picture.** End the same turn. One or two sentences:
+   the template that ran, the seed for a re-roll, the one thing you would change
+   next. Then let the result show — the tool already put the image in the
+   conversation; if you want it in your summary line, reuse the path `image_generate`
+   returned rather than inventing a URL.
 
-Worth asking:
+Do not review the picture's quality on your own. No "看起来很干净", no
+"需要我检查一下吗", no re-describing what is visible. Quality checks happen only
+when the user asks for one.
 
-- **What it is for** — a poster, a product shot, a thumbnail, a character sheet.
-  This changes framing, density, and how much text is allowed.
-- **What must be in it** — the product, the name, an exact line of copy, a
-  particular person or object. Guessing here produces a beautiful wrong picture.
-- **What it must not be** — "not corporate", "no people", "don't make it cute".
+The next request — a re-roll, a different subject, a size change — starts the
+loop again at step 1. Re-read the new ask; do not recycle the previous prompt.
 
-Not worth asking: lighting, lens, palette, composition, texture, mood adjectives,
-aspect ratio (pick one and say what you picked). Those are the parts you are
-supposed to know.
+## Writing the prompt
 
-If the brief is one noun with no direction ("画个猫"), ask the two questions that
-unlock it — what it is for, and what feeling it should carry — then shoot. If the
-user already gave direction, shoot first and offer variants after.
+One continuous paragraph describing the finished frame, usually 150–280 words —
+the density comes from what the frame carries, not from a quota:
 
-When the user is editing a picture they already have, do not re-shoot from
-scratch: the change is an edit. Read the existing picture, state in one line what
-becomes what, and only then act.
+- subject and action first, then the objects and where they sit relative to each
+  other, then light, then surface and texture;
+- abstract words become visible evidence: "quiet" is one broken tube light and an
+  empty row of seats, not the word quiet;
+- one or two concrete traces that belong only to this frame — something put down,
+  worn, half-used — they buy more than another adjective;
+- quoted copy keeps its script — Chinese words stay Chinese, and you say where
+  they sit ("the line across the top third");
+- no "masterpiece, 8k, best quality, ultra-detailed", no lens/ISO kit unless the
+  user asked for a photographic look;
+- aspect ratio goes in `size`, not in the prose.
 
-## Step 2 — Write the prompt
+The template decides the dialect: `caption` is the default, `tags` for an anime
+tag model, `layout-json` when position must be exact.
 
-Use the `prompt-director` skill in this same package. It already carries the
-triage questions, the target profiles (`caption` | `instruction` | `tag`), the
-density table, and the ban on quality-booster filler. Follow it exactly:
-
-- one continuous paragraph describing the finished frame;
-- quoted in-image text keeps its own script — Chinese copy stays Chinese;
-- no "masterpiece, 8k, best quality".
-
-The template you pick decides the dialect. `caption` is the default everywhere;
-`tags` for an anime tag model; `layout-json` when position must be exact.
-
-## Step 3 — Pick a template, not a model name
-
-`image_capabilities` reports what this machine can actually run. Prefer its
-answer over your assumptions, and re-read it if the user says a model is
-installed now.
+## Pick a template, not a model name
 
 | the picture is | `purpose` | pick the template that |
 | --- | --- | --- |
@@ -67,51 +76,54 @@ installed now.
 | photographic, painterly, stylised | `art` | has the widest aesthetic range |
 | change a picture the user already has | `edit` | takes a source image |
 
-The purpose tags are conventions, not a closed list — a template can declare any
-tag it likes, and `image_capabilities` prints what each one is for in its notes.
-Name a template directly only when the user names one or a previous run already
-proved the fit.
+Name a template directly only when the user names one or a previous run proved
+the fit. `image_capabilities` is for exactly two moments: the user asks what
+models are available, or a run failed and you need to know which file is missing.
+Do not call it before every generation.
 
-Bundled templates are examples tied to the author's own model files; on your
-machine most of them will fail their self-check until you point the plugin at
-your own workflows. That is expected, and the fix is configuration, not code.
+Bundled templates are examples tied to the author's own model files; most fail
+their self-check until the plugin points at your workflows. A failing self-check
+is not a bug to work around: the cards name the missing file — say so, offer the
+templates that do work, or edit the template to point at a file you have.
 
-A template whose self-check fails is not a bug to work around: the error names
-the missing file, and the honest move is to tell the user that file is missing,
-offer the templates that do work, or edit the template to point at a file they
-have.
+## Running it
 
-## Step 4 — Run it
-
-- `prompt` — the finished paragraph. Required.
-- `purpose` — narrows template choice. `template` — only when the user names one.
-- `size` — `3:4`, `16:9`, `1024x1365`, or `portrait`; omit for the template's
-  native size. Pick a ratio that suits the subject and say what you picked.
-- `batch` — more than one only when the user asked for options. Each image in a
-  batch shares one prompt and seed, so they differ only by sampler noise.
-- `seed` — pass a previous seed to prove a tweak helped, or to reproduce.
-- `image` — for edit templates: the local absolute path or URL of the source
-  picture. Write the prompt as an instruction that points at it (`<image1>`),
-  saying what becomes what and what must stay; the output keeps the source shape.
-
-- `params` — any other knob the chosen template exposes
-  (`sampler_name`, `scheduler`, `denoise`, a second seed, an upscale factor):
-  pass it as an object keyed by the slot name `image_capabilities` printed under
-  「槽位」. `params` beats the named arguments above; keys the template never
+- `prompt` — the expanded paragraph. Required.
+- `purpose` narrows template choice; `template` only when the user names one.
+- `size` — `3:4`, `16:9`, `1024x1365`, or `square`/`portrait`/`landscape`; omit
+  for the template's native size. Pick what suits the subject and say what you
+  picked.
+- `batch` — more than one only when the user wants options; a batch shares one
+  prompt and seed, so the frames differ only by noise.
+- `seed` — a previous seed to prove a tweak helped, or to reproduce.
+- `image` — for edit templates: absolute path or URL of the source picture.
+- `params` — any other knob the template exposes (`sampler_name`, `scheduler`,
+  `denoise`, an upscale factor), keyed by the slot name `image_capabilities`
+  prints under 「槽位」. It beats the named arguments; keys the template never
   declared come back in `ignoredParams`, so check that array instead of assuming
-  the knob took effect. Use it to answer "try a different sampler" or "how does
-  this look at 8 steps" without editing any file.
+  it took effect.
 
-Leave `steps` and `cfg` alone unless the user is debugging the picture; the
-templates ship with trained values.
+Leave `steps` and `cfg` alone unless the user is debugging the picture.
 
-## Step 5 — Present
+## Editing a picture the user already has
 
-The tool already puts the images in the conversation. Do not repeat them, do not
-describe them back, do not write your own markdown image link. One or two
-sentences: which template ran, the seed (so a re-roll is possible), and the
-concrete thing you would change next time. If the result missed, say what
-missed and re-run with the prompt fixed — do not blame the model.
+Do not re-shoot from scratch. Read the existing picture, state in one line what
+becomes what, and pass it as `image`. Write the prompt as a delta plus its
+invariants: what changes, and what must stay exactly as it is ("the face, hair
+and window light unchanged"). The output keeps the source's shape, so `size` is
+ignored.
 
-For a re-roll: same prompt, no seed. For a variation: same seed, one changed
-clause. For "bigger": `size` up, and let the template have the extra pixels.
+## When something goes wrong
+
+- **连不上 ComfyUI** — ComfyUI is not running, or `baseUrl` is wrong. Say that
+  plainly; do not retry in a loop.
+- **模板缺少文件** — run `image_capabilities`, name the missing file, and offer
+  the templates that do run here.
+- **任务结束了但没有产出图片 / 执行失败** — report the error text. Do not claim
+  success, do not silently re-run more than once with the same prompt; fix the
+  prompt and say what you changed.
+
+## Re-rolls and variations
+
+Re-roll: same prompt, no seed. Variation: same seed, one changed clause. Bigger:
+raise `size` and let the template use the extra pixels.

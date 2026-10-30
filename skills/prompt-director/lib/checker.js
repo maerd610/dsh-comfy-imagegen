@@ -46,6 +46,10 @@ const CAMERA_KIT = [
 ];
 
 const RATIO_IN_PROSE = [/\b\d{1,2}\s?:\s?\d{1,2}\b/, /\b\d{3,4}\s?[x×]\s?\d{3,4}\b/];
+// A paragraph that names no medium gets the renderer's own default look, which
+// is where "everything comes out realistic" actually comes from.
+const MEDIUM =
+  /watercolou?r|gouache|oil paint|acrylic|colou?red pencil|charcoal|pastel|crayon|ink wash|line ?art|linework|woodcut|linocut|screen ?print|risograph|etching|engraving|pixel art|pixel-art|vector|flat colou?r|cel[- ]?shad|3d render|claymation|paper ?cut|collage|photograph|digital painting|airbrush|水彩|水粉|油画|丙烯|彩铅|炭笔|蜡笔|水墨|工笔|线稿|版画|丝网|剪纸|拼贴|像素|矢量|平涂|赛璐璐|厚涂|渲染|绘本/i;
 // Image labels are legitimate: current models resolve "picture 1" / "图一".
 const REFERENCE_LABEL = /(?:picture|image|photo|ref(?:erence)?)\s*(?:no\.?\s*)?\d|图\s*[一二三四1234]/gi;
 // The failure is a pointer with nothing described behind it.
@@ -55,11 +59,11 @@ const NEGATION = /\b(no|not|never|without|don't|do not|avoid)\b/i;
 const HEDGE = /\b(appears to be|appearing to|likely|probably|perhaps|suggesting|may be|might be|seems?)\b/gi;
 
 const LENGTH = {
-  poster: [350, 600],
-  illustration: [220, 420],
-  photograph: [220, 400],
-  product: [220, 400],
-  character: [260, 460],
+  poster: [200, 600],
+  illustration: [140, 420],
+  photograph: [120, 400],
+  product: [120, 400],
+  character: [140, 460],
 };
 
 export function wordCount(text) {
@@ -106,6 +110,12 @@ export function checkPrompt({ text, category = 'illustration', copy = [], edit =
       const hit = body.match(re);
       if (hit) warnings.push(`camera kit "${hit[0]}" — only legitimate in a photograph brief`);
     }
+  }
+
+  if ((category === 'illustration' || category === 'character') && !MEDIUM.test(body)) {
+    warnings.push(
+      'no medium named — the renderer will fall back to its own default look; open with the medium ("watercolour and coloured pencil", "pixel art, 16-colour palette")',
+    );
   }
 
   if (REFERENCE_VAGUE.test(body)) {
